@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BASE-985161 Encoder/Decoder</title>
+  <style>
+    :root{--bg:#0b0f14;--panel:#111827;--fg:#e5e7eb;--muted:#94a3b8;--acc:#60a5fa;--acc2:#34d399;--mono:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace}
+    *{box-sizing:border-box}body{margin:0;background:linear-gradient(180deg,#0b0f14,#0d1420 25%,#0b0f14);color:var(--fg);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif}
+    header{display:flex;align-items:end;gap:12px;flex-wrap:wrap;padding:22px 18px 8px}
+    h1{margin:0;font-weight:700;letter-spacing:.2px} .badge{font-size:12px;padding:3px 8px;border-radius:999px;background:rgba(96,165,250,.12);color:#93c5fd;border:1px solid rgba(96,165,250,.35)}
+    main{max-width:1100px;margin:0 auto;padding:16px 18px 36px}
+    .card{background:var(--panel);border:1px solid rgba(148,163,184,.15);border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.25);margin-top:14px}
+    .card h2{margin:0;padding:12px 14px;border-bottom:1px solid rgba(148,163,184,.12);font-size:15px;color:#cbd5e1}
+    .card .body{padding:12px 14px}
+    textarea{width:100%;min-height:220px;resize:vertical;background:#0b1220;color:var(--fg);border:1px solid rgba(148,163,184,.25);border-radius:10px;padding:10px;font-family:var(--mono);font-size:13px}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.btn{appearance:none;border:1px solid rgba(148,163,184,.25);background:#0c1322;color:var(--fg);padding:9px 12px;border-radius:10px;font-weight:600;cursor:pointer}
+    .btn:hover{background:#0f1830}.acc{border-color:rgba(96,165,250,.45);background:rgba(96,165,250,.15)}.acc2{border-color:rgba(52,211,153,.45);background:rgba(52,211,153,.15)}
+    .pill{padding:2px 8px;border-radius:999px;background:#0b1220;border:1px solid rgba(148,163,184,.25)}
+    .small{font-size:12px;color:var(--muted)}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>BASE-985161 Encoder/Decoder</h1>
+    <span class="badge">radix 985,161 • big-int conversion</span>
+  </header>
+  <main>
+    <section class="card">
+      <h2>Input</h2>
+      <div class="body">
+        <div class="row" style="margin-bottom:8px">
+          <input id="file" type="file" class="btn" />
+          <button class="btn" id="demo">Load demo</button>
+          <span class="pill" id="inStats">—</span>
+        </div>
+        <textarea id="in" placeholder="Type/paste text here or load a file. ENCODE converts UTF-8 text/binary → BASE-985161. DECODE converts BASE-985161 → text/binary."></textarea>
+        <div class="row" style="margin-top:10px">
+          <button class="btn acc" id="encode">ENCODE →</button>
+          <button class="btn acc2" id="decode">← DECODE</button>
+          <button class="btn" id="copyIn">Copy</button>
+          <button class="btn" id="clearIn">Clear</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Output</h2>
+      <div class="body">
+        <div class="row" style="margin-bottom:8px">
+          <button class="btn" id="copyOut">Copy</button>
+          <button class="btn" id="downloadOut">Download</button>
+          <span class="pill" id="outStats">—</span>
+        </div>
+        <textarea id="out" placeholder="Encoded/decoded result appears here."></textarea>
+        <p class="small">
+          BASE-985161 uses a contiguous Unicode alphabet from U+10000 upward (985,161 symbols). It preserves leading zeros and uses big-integer base conversion (256↔985161). Some glyphs may not render—copy/paste still works.
+        </p>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const BASE = 985161;
+    const CP_START = 0x10000;
+    const CP_END = CP_START + BASE - 1;
+
+    const enc = new TextEncoder();
+    const dec = new TextDecoder();
+
+    const $ = s => document.querySelector(s);
+    const elIn = $('#in'), elOut = $('#out');
+    const elInStats = $('#inStats'), elOutStats = $('#outStats');
+
+    function updateStats(){
+      elInStats.textContent = `input chars: ${[...elIn.value].length}`;
+      elOutStats.textContent = `output chars: ${[...elOut.value].length}`;
+    }
+    updateStats();
+
+    function valToChar(v){ if (v<0 || v>=BASE) throw new RangeError('digit out of range'); return String.fromCodePoint(CP_START + v); }
+    function charToVal(ch){ const cp = ch.codePointAt(0); if (cp<CP_START || cp>CP_END) throw new Error(`Invalid digit U+${cp.toString(16).toUpperCase()}`); return cp - CP_START; }
+
+    function divmodNumber(digits, baseFrom, divisor){
+      const q=[]; let rem=0;
+      for (let i=0;i<digits.length;i++){
+        const acc = rem * baseFrom + digits[i];
+        const d = Math.floor(acc / divisor);
+        rem = acc % divisor;
+        if (q.length || d!==0) q.push(d);
+      }
+      return [q, rem];
+    }
+
+    function encodeB(bytes){
+      if (!bytes || bytes.length===0) return valToChar(0);
+      // count leading zero bytes
+      let zeros=0; while (zeros<bytes.length && bytes[zeros]===0) zeros++;
+      let digits = Array.from(bytes);
+      const out=[];
+      while (digits.length){
+        const [q, rem] = divmodNumber(digits, 256, BASE);
+        out.push(rem);
+        digits = q;
+      }
+      for (let i=0;i<zeros;i++) out.push(0);
+      out.reverse();
+      return out.map(valToChar).join('');
+    }
+
+    function decodeB(text){
+      if (!text || text.length===0) return new Uint8Array();
+      const digits=[];
+      for (let i=0;i<text.length;){
+        const cp = text.codePointAt(i);
+        i += (cp>0xFFFF?2:1);
+        if (cp<CP_START || cp>CP_END) throw new Error(`Invalid digit U+${cp.toString(16).toUpperCase()}`);
+        digits.push(cp - CP_START);
+      }
+      let zeros=0; for (const v of digits){ if (v===0) zeros++; else break; }
+      const out=[];
+      let arr = digits.slice();
+      while (arr.length){
+        const [q, rem] = divmodNumber(arr, BASE, 256);
+        out.push(rem);
+        arr = q;
+      }
+      for (let i=0;i<zeros;i++) out.push(0);
+      out.reverse();
+      return new Uint8Array(out);
+    }
+
+    // UI actions
+    $('#encode').onclick = ()=>{
+      try{
+        const bytes = enc.encode(elIn.value);
+        const t0 = performance.now();
+        const txt = encodeB(bytes);
+        const t1 = performance.now();
+        elOut.value = txt;
+        elOutStats.textContent = `output chars: ${[...txt].length} • ${(t1-t0).toFixed(1)} ms`;
+      }catch(e){ alert('Encode error: '+e.message); }
+    };
+    $('#decode').onclick = ()=>{
+      try{
+        const t0 = performance.now();
+        const bytes = decodeB(elIn.value);
+        const t1 = performance.now();
+        try { elOut.value = dec.decode(bytes); }
+        catch { elOut.value = `[binary ${bytes.length} bytes]`; }
+        elOutStats.textContent = `bytes: ${bytes.length} • ${(t1-t0).toFixed(1)} ms`;
+      }catch(e){ alert('Decode error: '+e.message); }
+    };
+    $('#copyIn').onclick = ()=> navigator.clipboard.writeText(elIn.value);
+    $('#copyOut').onclick = ()=> navigator.clipboard.writeText(elOut.value);
+    $('#clearIn').onclick = ()=> { elIn.value=''; updateStats(); };
+    $('#demo').onclick = ()=> { elIn.value = 'ewa dikke monkey\\n\\nBASE-985161 demo — encode me.'; updateStats(); };
+
+    $('#file').onchange = async (e)=>{
+      const f = e.target.files[0]; if (!f) return;
+      const buf = await f.arrayBuffer();
+      const text = new TextDecoder().decode(new Uint8Array(buf));
+      // Heuristic: if all code points are within our alphabet, treat as encoded and decode
+      const looksBase = [...text].every(ch => {
+        const cp = ch.codePointAt(0);
+        return cp>=CP_START && cp<=CP_END;
+      });
+      if (looksBase){
+        elIn.value = text;
+        $('#decode').click();
+      } else {
+        const bytes = new Uint8Array(buf);
+        elIn.value = text;
+        elOut.value = encodeB(bytes);
+      }
+      updateStats();
+    };
+
+    elIn.addEventListener('input', updateStats);
+    elOut.addEventListener('input', updateStats);
+  </script>
+</body>
+</html>
