@@ -1,63 +1,149 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>BASE-985161 Encoder/Decoder</title>
+  <title>BASE-985161 // Terminal Lab</title>
   <style>
-    :root{--bg:#0b0f14;--panel:#111827;--fg:#e5e7eb;--muted:#94a3b8;--acc:#60a5fa;--acc2:#34d399;--mono:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace}
-    *{box-sizing:border-box}body{margin:0;background:linear-gradient(180deg,#0b0f14,#0d1420 25%,#0b0f14);color:var(--fg);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif}
-    header{display:flex;align-items:end;gap:12px;flex-wrap:wrap;padding:22px 18px 8px}
-    h1{margin:0;font-weight:700;letter-spacing:.2px} .badge{font-size:12px;padding:3px 8px;border-radius:999px;background:rgba(96,165,250,.12);color:#93c5fd;border:1px solid rgba(96,165,250,.35)}
-    main{max-width:1100px;margin:0 auto;padding:16px 18px 36px}
-    .card{background:var(--panel);border:1px solid rgba(148,163,184,.15);border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.25);margin-top:14px}
-    .card h2{margin:0;padding:12px 14px;border-bottom:1px solid rgba(148,163,184,.12);font-size:15px;color:#cbd5e1}
-    .card .body{padding:12px 14px}
-    textarea{width:100%;min-height:220px;resize:vertical;background:#0b1220;color:var(--fg);border:1px solid rgba(148,163,184,.25);border-radius:10px;padding:10px;font-family:var(--mono);font-size:13px}
-    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.btn{appearance:none;border:1px solid rgba(148,163,184,.25);background:#0c1322;color:var(--fg);padding:9px 12px;border-radius:10px;font-weight:600;cursor:pointer}
-    .btn:hover{background:#0f1830}.acc{border-color:rgba(96,165,250,.45);background:rgba(96,165,250,.15)}.acc2{border-color:rgba(52,211,153,.45);background:rgba(52,211,153,.15)}
-    .pill{padding:2px 8px;border-radius:999px;background:#0b1220;border:1px solid rgba(148,163,184,.25)}
-    .small{font-size:12px;color:var(--muted)}
+    :root{
+      --bg:#050607;
+      --bg2:#0b0f0d;
+      --panel:#0b1110;
+      --panel2:#0f1715;
+      --fg:#d8ffe1;
+      --muted:#8fb59a;
+      --acc:#37ff8b;
+      --acc2:#57b8ff;
+      --warn:#f4e16a;
+      --mono:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      color:var(--fg);
+      font:14px/1.55 var(--mono);
+      background:
+        radial-gradient(900px 300px at 10% -10%, rgba(55,255,139,.16), transparent 60%),
+        radial-gradient(700px 260px at 90% 5%, rgba(87,184,255,.14), transparent 55%),
+        linear-gradient(180deg, var(--bg), var(--bg2));
+      min-height:100vh;
+    }
+    .scanline{position:fixed;inset:0;pointer-events:none;opacity:.18;background:repeating-linear-gradient(180deg, rgba(255,255,255,.03) 0 1px, transparent 1px 3px);mix-blend-mode:soft-light}
+    .glow{position:fixed;inset:0;pointer-events:none;background:radial-gradient(500px 200px at 50% -10%, rgba(55,255,139,.18), transparent 60%)}
+    header{padding:20px 18px 10px;display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap}
+    h1{margin:0;font-weight:700;font-size:clamp(20px,3vw,32px);letter-spacing:.7px;text-shadow:0 0 12px rgba(55,255,139,.25)}
+    .tag{font-size:12px;border:1px solid rgba(55,255,139,.4);padding:3px 8px;border-radius:999px;background:rgba(55,255,139,.1)}
+    .sub{color:var(--muted);margin-top:6px;max-width:72ch}
+    main{max-width:1200px;margin:0 auto;padding:12px 18px 40px}
+
+    .layout{display:grid;grid-template-columns:1fr;gap:16px}
+    @media (min-width:980px){
+      .layout{grid-template-columns:1.2fr .8fr}
+    }
+
+    .panel{background:linear-gradient(180deg, rgba(255,255,255,.01), rgba(255,255,255,.00)), var(--panel);border:1px solid rgba(143,181,154,.22);border-radius:14px;box-shadow:0 18px 40px rgba(0,0,0,.35);overflow:hidden}
+    .panel h2{margin:0;padding:12px 14px;border-bottom:1px solid rgba(143,181,154,.16);font-size:12px;letter-spacing:1px;text-transform:uppercase;color:#c6ffda}
+    .panel .body{padding:12px 14px}
+
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    .btn{appearance:none;border:1px solid rgba(143,181,154,.3);background:#0b1512;color:var(--fg);padding:8px 12px;border-radius:10px;font-weight:600;cursor:pointer;transition:transform .08s ease, box-shadow .2s ease, background .2s ease}
+    .btn:hover{background:#0f1d18;box-shadow:0 10px 22px rgba(0,0,0,.3)}
+    .btn:active{transform:translateY(1px)}
+    .acc{border-color:rgba(55,255,139,.6);background:linear-gradient(180deg, rgba(55,255,139,.18), rgba(55,255,139,.08))}
+    .acc2{border-color:rgba(87,184,255,.6);background:linear-gradient(180deg, rgba(87,184,255,.18), rgba(87,184,255,.08))}
+
+    textarea{
+      width:100%;min-height:240px;resize:vertical;background:var(--panel2);color:var(--fg);
+      border:1px solid rgba(143,181,154,.28);border-radius:10px;padding:10px 12px;
+      font-family:var(--mono);font-size:13px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.02)
+    }
+    textarea:focus{outline:1px solid rgba(55,255,139,.45)}
+
+    .pill{padding:2px 8px;border-radius:999px;background:#0a140f;border:1px solid rgba(143,181,154,.28);color:var(--muted)}
+
+    .stats{display:flex;gap:8px;flex-wrap:wrap}
+    .stat{border:1px dashed rgba(143,181,154,.3);border-radius:10px;padding:6px 8px;font-size:12px;color:var(--muted)}
+
+    .cmd{display:flex;gap:6px;align-items:center;font-size:12px;color:#e4ffe9}
+    .cmd .prompt{color:#bfffd1}
+    .cmd code{background:#0c1613;border:1px solid rgba(143,181,154,.25);padding:2px 6px;border-radius:6px}
+
+    .timeline{display:grid;gap:8px}
+    .step{border:1px solid rgba(143,181,154,.22);border-radius:10px;padding:8px 10px;background:#0a1511}
+    .step b{color:#e9ffef}
+
+    .footer{margin-top:10px;color:var(--muted);font-size:12px}
   </style>
 </head>
 <body>
-  <header>
-    <h1>BASE-985161 Encoder/Decoder</h1>
-    <span class="badge">radix 985,161 • big-int conversion</span>
-  </header>
-  <main>
-    <section class="card">
-      <h2>Input</h2>
-      <div class="body">
-        <div class="row" style="margin-bottom:8px">
-          <input id="file" type="file" class="btn" />
-          <button class="btn" id="demo">Load demo</button>
-          <span class="pill" id="inStats">—</span>
-        </div>
-        <textarea id="in" placeholder="Type/paste text here or load a file. ENCODE converts UTF-8 text/binary → BASE-985161. DECODE converts BASE-985161 → text/binary."></textarea>
-        <div class="row" style="margin-top:10px">
-          <button class="btn acc" id="encode">ENCODE →</button>
-          <button class="btn acc2" id="decode">← DECODE</button>
-          <button class="btn" id="copyIn">Copy</button>
-          <button class="btn" id="clearIn">Clear</button>
-        </div>
-      </div>
-    </section>
+  <div class="glow" aria-hidden="true"></div>
+  <div class="scanline" aria-hidden="true"></div>
 
-    <section class="card">
-      <h2>Output</h2>
-      <div class="body">
-        <div class="row" style="margin-bottom:8px">
-          <button class="btn" id="copyOut">Copy</button>
-          <button class="btn" id="downloadOut">Download</button>
-          <span class="pill" id="outStats">—</span>
+  <header>
+    <div>
+      <h1>BASE-985161 // Terminal Lab</h1>
+      <div class="sub">Compact binary-to-text encoding using a 985,161-symbol Unicode alphabet (U+10000..). Fast, reversible, and preserves leading 0x00 bytes.</div>
+    </div>
+    <span class="tag">radix 985,161</span>
+  </header>
+
+  <main>
+    <div class="layout">
+      <section class="panel">
+        <h2>Console I/O</h2>
+        <div class="body">
+          <div class="row" style="margin-bottom:8px">
+            <input id="file" type="file" class="btn" />
+            <button class="btn" id="demo">Load demo</button>
+            <span class="pill" id="inStats">-</span>
+          </div>
+          <textarea id="in" placeholder="Paste text or load a file. ENCODE converts UTF-8 text/binary -> BASE-985161. DECODE converts BASE-985161 -> text/binary."></textarea>
+          <div class="row" style="margin-top:10px">
+            <button class="btn acc" id="encode">ENCODE -></button>
+            <button class="btn acc2" id="decode"><- DECODE</button>
+            <button class="btn" id="copyIn">Copy</button>
+            <button class="btn" id="clearIn">Clear</button>
+          </div>
         </div>
-        <textarea id="out" placeholder="Encoded/decoded result appears here."></textarea>
-        <p class="small">
-          BASE-985161 uses a contiguous Unicode alphabet from U+10000 upward (985,161 symbols). It preserves leading zeros and uses big-integer base conversion (256↔985161). Some glyphs may not render—copy/paste still works.
-        </p>
-      </div>
-    </section>
+      </section>
+
+      <section class="panel">
+        <h2>Output Buffer</h2>
+        <div class="body">
+          <div class="row" style="margin-bottom:8px">
+            <button class="btn" id="copyOut">Copy</button>
+            <button class="btn" id="downloadOut">Download</button>
+            <span class="pill" id="outStats">-</span>
+          </div>
+          <textarea id="out" placeholder="Encoded or decoded output appears here."></textarea>
+          <div class="stats" style="margin-top:8px">
+            <div class="stat">Alphabet: U+10000..U+10FFFF</div>
+            <div class="stat">No padding</div>
+            <div class="stat">Leading zeros preserved</div>
+          </div>
+          <div class="footer">Note: some glyphs may not render but decoding uses code points, not glyph shapes.</div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Quick Commands</h2>
+        <div class="body timeline">
+          <div class="step"><b>Encode file</b><div class="cmd"><span class="prompt">$</span><code>base985161 enc input.bin out.b985161</code></div></div>
+          <div class="step"><b>Decode file</b><div class="cmd"><span class="prompt">$</span><code>base985161 dec out.b985161 restored.bin</code></div></div>
+          <div class="step"><b>Pipe input</b><div class="cmd"><span class="prompt">$</span><code>cat file | base985161 enc - - &gt; out.b985161</code></div></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>How It Works</h2>
+        <div class="body timeline">
+          <div class="step"><b>1. Read bytes</b><div class="footer">Input is treated as raw bytes (UTF-8 for typed text).</div></div>
+          <div class="step"><b>2. Base conversion</b><div class="footer">Repeated div/mod from base-256 to base-985161.</div></div>
+          <div class="step"><b>3. Map digits</b><div class="footer">Digits map to Unicode code points starting at U+10000.</div></div>
+          <div class="step"><b>4. Preserve zeros</b><div class="footer">Leading 0x00 bytes become leading zero digits.</div></div>
+        </div>
+      </section>
+    </div>
   </main>
 
   <script>
@@ -79,8 +165,6 @@
     updateStats();
 
     function valToChar(v){ if (v<0 || v>=BASE) throw new RangeError('digit out of range'); return String.fromCodePoint(CP_START + v); }
-    function charToVal(ch){ const cp = ch.codePointAt(0); if (cp<CP_START || cp>CP_END) throw new Error(`Invalid digit U+${cp.toString(16).toUpperCase()}`); return cp - CP_START; }
-
     function divmodNumber(digits, baseFrom, divisor){
       const q=[]; let rem=0;
       for (let i=0;i<digits.length;i++){
@@ -94,7 +178,6 @@
 
     function encodeB(bytes){
       if (!bytes || bytes.length===0) return valToChar(0);
-      // count leading zero bytes
       let zeros=0; while (zeros<bytes.length && bytes[zeros]===0) zeros++;
       let digits = Array.from(bytes);
       const out=[];
@@ -130,7 +213,6 @@
       return new Uint8Array(out);
     }
 
-    // UI actions
     $('#encode').onclick = ()=>{
       try{
         const bytes = enc.encode(elIn.value);
@@ -138,7 +220,7 @@
         const txt = encodeB(bytes);
         const t1 = performance.now();
         elOut.value = txt;
-        elOutStats.textContent = `output chars: ${[...txt].length} • ${(t1-t0).toFixed(1)} ms`;
+        elOutStats.textContent = `output chars: ${[...txt].length} | ${(t1-t0).toFixed(1)} ms`;
       }catch(e){ alert('Encode error: '+e.message); }
     };
     $('#decode').onclick = ()=>{
@@ -148,19 +230,18 @@
         const t1 = performance.now();
         try { elOut.value = dec.decode(bytes); }
         catch { elOut.value = `[binary ${bytes.length} bytes]`; }
-        elOutStats.textContent = `bytes: ${bytes.length} • ${(t1-t0).toFixed(1)} ms`;
+        elOutStats.textContent = `bytes: ${bytes.length} | ${(t1-t0).toFixed(1)} ms`;
       }catch(e){ alert('Decode error: '+e.message); }
     };
     $('#copyIn').onclick = ()=> navigator.clipboard.writeText(elIn.value);
     $('#copyOut').onclick = ()=> navigator.clipboard.writeText(elOut.value);
     $('#clearIn').onclick = ()=> { elIn.value=''; updateStats(); };
-    $('#demo').onclick = ()=> { elIn.value = 'ewa dikke monkey\\n\\nBASE-985161 demo — encode me.'; updateStats(); };
+    $('#demo').onclick = ()=> { elIn.value = 'BASE-985161 demo\n\nEncode me.'; updateStats(); };
 
     $('#file').onchange = async (e)=>{
       const f = e.target.files[0]; if (!f) return;
       const buf = await f.arrayBuffer();
       const text = new TextDecoder().decode(new Uint8Array(buf));
-      // Heuristic: if all code points are within our alphabet, treat as encoded and decode
       const looksBase = [...text].every(ch => {
         const cp = ch.codePointAt(0);
         return cp>=CP_START && cp<=CP_END;
