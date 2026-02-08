@@ -1,4 +1,6 @@
-﻿# BASE-985161 — Binary-to-Text via Big-Integer Conversion
+[![npm](https://img.shields.io/npm/v/base985161)](https://www.npmjs.com/package/base985161)
+
+ # BASE-985161 — Binary-to-Text via Big-Integer Conversion
 
 **BASE-985161** encodes any byte stream as text using a Unicode alphabet of 985,161 symbols (from U+10000 upward). It preserves leading zero bytes and performs true base conversion (256 <-> 985,161), similar to Base58 but at a much larger radix.
 
