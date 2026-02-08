@@ -1,0 +1,29 @@
+{
+  "name": "base-985161",
+  "version": "0.1.0",
+  "description": "Binary-to-text encoding using a 985,161-symbol Unicode alphabet (U+10000..).",
+  "license": "MIT",
+  "type": "module",
+  "main": "./base985161.js",
+  "exports": {
+    ".": "./base985161.js"
+  },
+  "bin": {
+    "base985161": "./base985161.js"
+  },
+  "files": [
+    "base985161.js",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "base",
+    "encoding",
+    "unicode",
+    "binary",
+    "bigint"
+  ],
+  "engines": {
+    "node": ">=18"
+  }
+}

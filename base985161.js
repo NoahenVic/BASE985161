@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 // Base-985161 encoder/decoder (ES module + simple CLI)
 // Radix: 985,161 (not a power of two)
 // Alphabet: U+10000 .. U+10000+985160 (avoids surrogates)
