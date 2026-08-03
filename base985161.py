@@ -60,7 +60,7 @@ def encode(data: bytes) -> str:
     Preserves leading 0x00 bytes by emitting leading zero-digits.
     """
     if not data:
-        return val_to_char(0)  # represent empty as single zero digit
+        return ""
 
     # Count leading zero bytes
     zeros = 0
@@ -71,16 +71,15 @@ def encode(data: bytes) -> str:
             break
 
     # Convert base-256 digits -> base-985161 by repeated div/mod
-    digits256 = list(data)  # MSB-first
+    # Leading zeros are markers, not part of the numeric payload.
+    digits256 = list(data[zeros:])  # MSB-first
     out_vals: List[int] = []
     while digits256:
         digits256, rem = _divmod_number(digits256, 256, BASE)
         out_vals.append(rem)
-    # Add leading zero markers
-    out_vals.extend([0] * zeros)
     # Most-significant first
     out_vals.reverse()
-    return ''.join(val_to_char(v) for v in out_vals)
+    return ''.join(val_to_char(v) for v in ([0] * zeros + out_vals))
 
 
 def decode(text: str) -> bytes:
@@ -103,14 +102,14 @@ def decode(text: str) -> bytes:
 
     # Convert to base-256 via repeated division
     out: List[int] = []
+    # Exclude zero markers from the numeric conversion.
+    digitsB = digitsB[zeros:]
     while digitsB:
         digitsB, rem = _divmod_number(digitsB, BASE, 256)
         out.append(rem)
-    # Append leading zero bytes
-    out.extend([0] * zeros)
     # MSB-first: reverse remainders
     out.reverse()
-    return bytes(out)
+    return bytes([0] * zeros + out)
 
 # ---------------- CLI ----------------
 
@@ -123,19 +122,29 @@ def main(argv: List[str]) -> int:
     outf = argv[3] if len(argv) > 3 else "-"
 
     if mode == "enc":
-        data = sys.stdin.buffer.read() if inf == "-" else open(inf, "rb").read()
+        if inf == "-":
+            data = sys.stdin.buffer.read()
+        else:
+            with open(inf, "rb") as input_file:
+                data = input_file.read()
         txt = encode(data)
         if outf == "-":
             sys.stdout.write(txt)
         else:
-            open(outf, "w", encoding="utf-8").write(txt)
+            with open(outf, "w", encoding="utf-8") as output_file:
+                output_file.write(txt)
     else:
-        txt = sys.stdin.read() if inf == "-" else open(inf, "r", encoding="utf-8").read()
+        if inf == "-":
+            txt = sys.stdin.read()
+        else:
+            with open(inf, "r", encoding="utf-8") as input_file:
+                txt = input_file.read()
         raw = decode(txt)
         if outf == "-":
             sys.stdout.buffer.write(raw)
         else:
-            open(outf, "wb").write(raw)
+            with open(outf, "wb") as output_file:
+                output_file.write(raw)
     return 0
 
 if __name__ == "__main__":

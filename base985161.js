@@ -13,6 +13,7 @@ export function valToChar(v){
   return String.fromCodePoint(CP_START + v);
 }
 export function charToVal(ch){
+  if (typeof ch !== 'string' || [...ch].length !== 1) throw new TypeError('expected exactly one Unicode character');
   const cp = ch.codePointAt(0);
   if (cp < CP_START || cp > CP_END) throw new Error(`Invalid Base-985161 character U+${cp.toString(16).toUpperCase()}`);
   return cp - CP_START;
@@ -32,22 +33,22 @@ function divmodNumber(digits, baseFrom, divisor){
 }
 
 export function encode(bytes){
-  if (!bytes || bytes.length === 0) return valToChar(0);
+  if (!bytes || bytes.length === 0) return '';
 
   // Count leading zero bytes
   let zeros = 0; while (zeros < bytes.length && bytes[zeros] === 0) zeros++;
 
-  let digits256 = Array.from(bytes); // MSB-first
+  // Leading zeros are markers, not part of the numeric payload.
+  let digits256 = Array.from(bytes).slice(zeros); // MSB-first
   const outVals = [];
   while (digits256.length){
     const [q, rem] = divmodNumber(digits256, 256, BASE);
     outVals.push(rem);
     digits256 = q;
   }
-  // Add markers for leading zero bytes
-  for (let i=0;i<zeros;i++) outVals.push(0);
   outVals.reverse();
-  return outVals.map(valToChar).join('');
+  const zeroMarkers = new Array(zeros).fill(0);
+  return zeroMarkers.concat(outVals).map(valToChar).join('');
 }
 
 export function decode(text){
@@ -63,19 +64,25 @@ export function decode(text){
   let zeros = 0; for (const v of digitsB){ if (v===0) zeros++; else break; }
 
   const out = [];
-  let arr = digitsB.slice();
+  // Exclude zero markers from the numeric conversion.
+  let arr = digitsB.slice(zeros);
   while (arr.length){
     const [q, rem] = divmodNumber(arr, BASE, 256);
     out.push(rem);
     arr = q;
   }
-  for (let i=0;i<zeros;i++) out.push(0);
   out.reverse();
-  return new Uint8Array(out);
+  return new Uint8Array(new Array(zeros).fill(0).concat(out));
 }
 
 // -------------- CLI (Node) --------------
-if (typeof process !== 'undefined' && import.meta.url === `file://${process.argv[1]}`){
+async function isMainModule(){
+  if (typeof process === 'undefined' || !process.argv?.[1]) return false;
+  const { pathToFileURL } = await import('node:url');
+  return import.meta.url === pathToFileURL(process.argv[1]).href;
+}
+
+if (await isMainModule()){
   const fs = await import('node:fs');
   const args = process.argv.slice(2);
   if (args.length < 1 || !['enc','dec'].includes(args[0])){
